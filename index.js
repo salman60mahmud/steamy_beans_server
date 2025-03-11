@@ -9,6 +9,7 @@ const port = process.env.PORT || 5000
 // Middlewares
 app.use(cors())
 app.use(bodyParser.json())
+app.use(express.json())
 
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
@@ -26,6 +27,15 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
+
+    const userCollection = client.db('BeansDB').collection("User");
+
+    app.post('/user', async (req, res) => {
+      const user = req.body;
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+
+    })
     await client.connect();
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
@@ -39,10 +49,10 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Hello World!')
+  res.send('Hello World!')
 })
 
 app.listen(port, () => {
-    console.log(`Steamy Beans app listening on port ${port}`)
+  console.log(`Steamy Beans app listening on port ${port}`)
 
 })
