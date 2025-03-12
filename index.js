@@ -34,8 +34,31 @@ async function run() {
       const user = req.body;
       const result = await userCollection.insertOne(user);
       res.send(result);
-
     })
+
+    app.get('/loginuser/:email', async (req, res) => {
+      const email = req.params.email;
+      const user = await userCollection.findOne({ email: email });
+      res.send(user);
+    })
+
+    app.get('/alluser', async (req, res) => {
+      const user = await userCollection.find().toArray();
+      res.send(user);
+    })
+
+
+    // make moderator api
+    app.put('/user/make-moderator/:email', async (req, res) => {
+      const email = req.params.email;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: { role: 'Moderator' },
+      };
+      const result = await userCollection.updateMany(filter, updateDoc);
+      res.send(result);
+    })
+
     await client.connect();
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
