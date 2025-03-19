@@ -1,15 +1,23 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const rateLimit = require('express-rate-limit');
+const { body, validationResult } = require('express-validator');
 const app = express();
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+})
+
 // Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(limiter);
 
-
+const path = require('path');
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.bvfwp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -23,9 +31,10 @@ const client = new MongoClient(uri, {
   }
 });
 
+// API Routes
 async function run() {
   try {
-    // Connect the client to the server (optional starting in v4.7)
+    // Connect the client to the server
 
 
     const userCollection = client.db('BeansDB').collection("User");
@@ -47,8 +56,9 @@ async function run() {
       try {
         const user = req.body;
         const result = await userCollection.insertOne(user);
-        res.send(result);
+        res.status(201).send(result);
       } catch (error) {
+        console.error('Error creating user:', error);
         res.status(500).send({ error: 'An error occurred while creating the user.' });
       }
     });
@@ -72,6 +82,7 @@ async function run() {
         const user = await userCollection.find().toArray();
         res.send(user);
       } catch (error) {
+        console.error('Error fetching users:', error);
         res.status(500).send({ error: 'An error occurred while fetching all users.' });
       }
     });
@@ -84,23 +95,21 @@ async function run() {
         const updateDoc = {
           $set: { role: 'Moderator' },
         };
-        const result = await userCollection.updateMany(filter, updateDoc);
+        const result = await userCollection.updateOne(filter, updateDoc);
         if (result.matchedCount === 0) {
           return res.status(404).send({ error: 'User not found' });
         }
         res.send(result);
       } catch (error) {
+        console.error('Error updating user role:', error);
         res.status(500).send({ error: 'An error occurred while updating the user role.' });
       }
     });
 
-    // Send a ping to confirm a successful connection
-    await client.connect();
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-    await run();
+
   } catch (error) {
-    console.error('Error connecting to MongoDB:', error);
+    console.error('Error setting up routes:', error);
+    process.exit(1);
   }
 }
 
